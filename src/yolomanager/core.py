@@ -3,7 +3,7 @@ import torch
 from ultralytics import YOLO
 
 class YoloManager:
-    def __init__(self, model_path='yolo11s.pt', data_yaml='data/data.yaml'):
+    def __init__(self, model_path='yolo11s.pt', data_yaml='data.yaml'):
         """
         Inicjalizuje menedżera YOLO.
         :param model_path: Ścieżka do modelu .pt
@@ -16,7 +16,7 @@ class YoloManager:
         self.device = 0 if torch.cuda.is_available() else 'cpu'
         print(f"[*] Używane urządzenie: {self.device}")
 
-    def train(self, epochs=100, batch=8, imgsz=640, project_name='TWM', name='run_1'):
+    def train(self, epochs=100, batch=8, imgsz=640, project_name='TWM', name='run'):
         """Uruchamia proces uczenia."""
         if not os.path.exists(self.data_yaml):
             raise FileNotFoundError(f"Nie znaleziono pliku konfiguracji danych: {self.data_yaml}")
@@ -30,7 +30,7 @@ class YoloManager:
             device=self.device,
             project=project_name,
             name=name,
-            exist_ok=False # Nadpisuje folder o tej samej nazwie zamiast tworzyć run2, run3...
+            exist_ok=True # Nadpisuje folder o tej samej nazwie zamiast tworzyć run2, run3...
         )
         print("[+] Trening zakończony!")
 
