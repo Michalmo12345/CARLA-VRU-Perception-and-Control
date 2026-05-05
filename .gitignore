@@ -6,3 +6,6 @@ runs/
 verify_samples/
 yolo11n.pt
 yolo11s.pt
+
+src/yolodatasetbuilder/__pycache__/
+src/yolomanager/__pycache__/

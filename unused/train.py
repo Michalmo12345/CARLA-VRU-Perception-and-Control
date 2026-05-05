@@ -6,7 +6,7 @@ def main():
 
     results = model.train(
         data='data.yaml',      # Path to your dataset config file
-        epochs=3,            # How many times the model will see the whole dataset
+        epochs=100,            # How many times the model will see the whole dataset
         imgsz=640,             # Resize images to 640 pixels (maintains aspect ratio)
         batch=16,              # How many images to process at once (lower to 8 if you get Out Of Memory errors)
         device=0,              # '0' means use GPU. Change to 'cpu' if you don't have an NVIDIA GPU setup.
