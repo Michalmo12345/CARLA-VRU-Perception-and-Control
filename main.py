@@ -18,7 +18,7 @@ def main():
     MODE = args.mode_alias if args.mode_alias else args.mode
 
     DATA_YAML = 'data.yaml'  
-    MODEL_BASE = 'models/yolo11s.pt'
+    MODEL_BASE = 'yolo11s.pt'
 
     if MODE == 'FULL':
         print(f"\n[*] URUCHAMIANIE PIPELINE: Przygotowanie danych (Mode: {MODE})...")
@@ -34,7 +34,7 @@ def main():
             epochs=100, 
             batch=16, 
             project_name='TWM',
-            name='run_1' 
+            name='run' 
         )
 
     elif MODE == 'PREDICT':

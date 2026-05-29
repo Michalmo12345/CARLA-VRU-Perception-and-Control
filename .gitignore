@@ -9,3 +9,7 @@ yolo11s.pt
 
 src/yolodatasetbuilder/__pycache__/
 src/yolomanager/__pycache__/
+src/nurd_system/__pycache__
+nurd_demo.py
+nurd_simulation.py
+__pycache__/
