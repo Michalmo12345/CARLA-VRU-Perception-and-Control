@@ -65,11 +65,41 @@ class NURDApp:
 def main():
     weights = 'runs/detect/TWM/run/weights/best.pt'
     if not os.path.exists(weights):
-        print(f"Błąd: Brak wag modelu w {weights}")
-        return
+        # Fallback to base model if trained weights are missing
+        weights = 'yolo11s.pt'
+        print(f"[*] Nie znaleziono best.pt, używam modelu bazowego: {weights}")
 
     app = NURDApp(weights)
-    print("Moduł załadowany. Gotowy do wpięcia w pętlę sterowania.")
+    
+
+    # Testowanie samego odpalenia i działania na kamerze z PC, dla Carli osobny moduł #TODO
+    cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        print("Błąd: Nie można otworzyć kamery.")
+        return
+
+    print("[*] Uruchomiono tryb testowy kamery. Naciśnij 'q' aby wyjść.")
+    last_time = time.time()
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        current_time = time.time()
+        dt = current_time - last_time
+        last_time = current_time
+
+        dt = max(dt, 0.001)
+
+        processed_frame, risks = app.process_frame(frame, dt)
+        
+        cv2.imshow("NURD - Test Lokalny (Kamera)", processed_frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
     
 if __name__ == "__main__":
     main()
