@@ -59,6 +59,8 @@ class NURDApp:
             label = f"ID:{int(tid)} {dist_val:.1f}m {risk_lvl} v_app:{v_app:.1f}m/s"
             cv2.putText(frame, label, (int(cx-w/2), int(cy-h/2)-10), 
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+            
+            risk['distance_m'] = dist_val
 
         return frame, risks
 
