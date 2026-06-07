@@ -2,7 +2,13 @@ rgb/
 bounding_box_2d/
 dataset/
 yolo_env/
-runs/
+# Ignore all runs except for specific results
+runs/*
+!runs/detect/
+runs/detect/*
+!runs/detect/TWM/
+runs/detect/TWM/*
+!runs/detect/TWM/run/
 verify_samples/
 yolo11n.pt
 yolo11s.pt
