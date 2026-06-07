@@ -18,32 +18,47 @@ class RiskAssessmentModule:
         self.critical_ttc = critical_ttc
         self.base_speed = base_speed
         
-        # Ostatnie znane odległości dla obliczenia prędkości radialnej
+        
         self.distance_history: Dict[int, float] = {}
+        self.v_radial_history: Dict[int, float] = {}
+        self.smoothing_factor = 0.3 # EMA: 0.3 (nowy pomiar), 0.7 (historia)
 
     def _calc_ttc(self, dist: float, v_radial: float) -> float:
-        if v_radial <= 0.1: # Brak zbliżania lub błąd pomiaru
+        # TTC liczymy tylko dla realnego zbliżania (> 0.2 m/s)
+        if v_radial <= 0.2:
             return float('inf')
         return dist / v_radial
 
     def assess(self, kinematics: np.ndarray, distances: np.ndarray, dt: float) -> List[Dict]:
         """
-        Główna logika decyzyjna.
+        Główna logika decyzyjna z wygładzaniem prędkości.
         """
         results = []
-        new_history = {}
+        new_dist_history = {}
+        new_v_history = {}
         
         for i in range(len(distances)):
             dist = distances[i].item()
             tid = int(kinematics[i, 0])
             
-            # Prędkość zbliżania w m/s
-            v_radial = 0.0
+            # 1. Obliczenie surowej prędkości zbliżania
+            v_raw = 0.0
             if tid in self.distance_history and dt > 0:
-                v_radial = (self.distance_history[tid] - dist) / dt
-                
-            new_history[tid] = dist
-            ttc = self._calc_ttc(dist, v_radial)
+                v_raw = (self.distance_history[tid] - dist) / dt
+            
+            # 2. Wygładzanie (EMA Filter) - chroni przed skokami z szumu YOLO
+            if tid in self.v_radial_history:
+                v_smooth = (self.smoothing_factor * v_raw) + ((1 - self.smoothing_factor) * self.v_radial_history[tid])
+            else:
+                v_smooth = v_raw
+            
+            # Ograniczenie fizyczne (pieszy/rower w CARLA rzadko przekracza 30 m/s)
+            v_smooth = np.clip(v_smooth, -50.0, 50.0)
+            
+            new_dist_history[tid] = dist
+            new_v_history[tid] = v_smooth
+            
+            ttc = self._calc_ttc(dist, v_smooth)
             
             #ryzyko
             if ttc < self.critical_ttc or dist < 5.0:
@@ -64,8 +79,9 @@ class RiskAssessmentModule:
                 "risk_level": lvl,
                 "target_speed": v_target,
                 "ttc_value": ttc,
-                "v_approach": v_radial
+                "v_approach": v_smooth
             })
             
-        self.distance_history = new_history
+        self.distance_history = new_dist_history
+        self.v_radial_history = new_v_history
         return results

@@ -38,7 +38,8 @@ Wyniki porównano z obiektywnymi danymi Ground Truth 3D z symulatora w rozszerzo
 ## 3. Krytyczna Analiza Wyników
 
 ### 3.1. Analiza Błędów i Ograniczeń
-1.  **Błąd "Standardowego Wzrostu"**: Największe odchylenia w module dystansu wynikają z różnic między założonym wzrostem statystycznym (np. 1.70m) a faktycznym modelem 3D w CARLA. Odchylenia te są jednak akceptowalne.
+1.  **Konsolidacja Obiektów (Motorocyclist)**: W procesie przygotowania zbioru danych zastosowano celową fuzję ramek ograniczających dla motocykla i motocyklisty. Dzięki temu system traktuje ich jako jeden spójny obiekt NURD. Eliminuje to redundancję w module śledzenia (jedno ID na jeden pojazd) i stabilizuje estymację dystansu, która opiera się na sumarycznej wysokości sylwetki.
+2.  **Błąd "Standardowego Wzrostu"**: Największe odchylenia w module dystansu wynikają z różnic między założonym wzrostem statystycznym (np. 1.70m) a faktycznym modelem 3D w CARLA. Odchylenia te są jednak akceptowalne.
 2.  **Ograniczenia Kamery Monokularnej**: Zastosowany wzór $Z = (H_{real} \cdot f) / h_{px}$ jest bardzo wrażliwy na precyzję wysokości bounding boxa, stąd spadek dokładności na dużych dystansach.
 3.  **Recall (Czułość)**: Recall na poziomie 0.54 wskazuje, że dalekie lub przysłonięte obiekty mogą być pomijane. Wymaga to użycia modeli o wyższej rozdzielczości wejściowej w przyszłości.
 

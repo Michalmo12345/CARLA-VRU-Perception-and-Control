@@ -12,6 +12,7 @@ runs/detect/TWM/*
 verify_samples/
 yolo11n.pt
 yolo11s.pt
+report_visuals/
 
 src/yolodatasetbuilder/__pycache__/
 src/yolomanager/__pycache__/

@@ -5,7 +5,7 @@ import numpy as np
 import cv2
 
 # Project root setup
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from src.nurd_system.detection import DetectionModule
 from src.nurd_system.tracking import TrackingModule
