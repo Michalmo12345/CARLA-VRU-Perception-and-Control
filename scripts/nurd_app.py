@@ -10,20 +10,40 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from src.nurd_system.detection import DetectionModule
 from src.nurd_system.tracking import TrackingModule
 from src.nurd_system.distance import DistanceEstimationModule
-from src.nurd_system.risk import RiskAssessmentModule
+from src.nurd_system.risk import CollisionModelParams, RiskAssessmentModule, RiskLevel
 
 class NURDApp:
     """
     Integracja modułów NURD dla CARLA lub wideo.
+
+    Parametry kamery (ogniskowa, rozmiar obrazu) są wstrzykiwane przez wywołującego
+    — dla CARLA runner podaje realną ogniskową z FOV. Wartości domyślne to jedynie
+    przybliżenie dla testowego trybu webcam (`main()`), gdzie FOV jest nieznane.
     """
-    def __init__(self, model_path: str):
+    def __init__(
+        self,
+        model_path: str,
+        focal_length_px: float = 320.0,
+        image_width: int = 640,
+        image_height: int = 640,
+        base_speed: float = 50.0,
+        fuse_closing_speed: bool = False,
+    ):
         self.detector = DetectionModule(model_path=model_path)
         self.tracker = TrackingModule(min_hits=2)
-        # TODO: Kalibracja pod konkretny FOV kamery
-        self.dist_module = DistanceEstimationModule(focal_length_px=320.0, image_width=640, image_height=640)
-        self.risk_module = RiskAssessmentModule(base_speed=50.0)
+        self.dist_module = DistanceEstimationModule(
+            focal_length_px=focal_length_px,
+            image_width=image_width,
+            image_height=image_height,
+        )
+        self.risk_module = RiskAssessmentModule(
+            base_speed=base_speed,
+            focal_length_px=focal_length_px,
+            image_width=image_width,
+            params=CollisionModelParams(fuse_radial_closing=fuse_closing_speed),
+        )
 
-    def process_frame(self, frame: np.ndarray, dt: float):
+    def process_frame(self, frame: np.ndarray, dt: float, ego_speed_ms: float = None):
         """
         Główny pipeline: Detekcja -> Tracking -> Odległość -> Ryzyko
         """
@@ -40,16 +60,26 @@ class NURDApp:
         class_ids = tracks[:, 8]
         distances = self.dist_module.estimate(dist_input, class_ids)
 
-        kinematics = np.delete(tracks, [3, 4], axis=1) 
-        risks = self.risk_module.assess(kinematics, distances, dt)
+        kinematics = np.delete(tracks, [3, 4], axis=1)
+        bboxes = tracks[:, 1:5]
+        img_h, img_w = frame.shape[:2]
+        risks = self.risk_module.assess(
+            kinematics, distances, dt,
+            bboxes=bboxes,
+            image_size=(img_w, img_h),
+            ego_speed_ms=ego_speed_ms,
+        )
 
         for i, (track, risk) in enumerate(zip(tracks, risks)):
             tid, cx, cy, w, h, vx, vy, head, cls = track
             dist_val = distances[i].item()
             risk_lvl = risk['risk_level'].name
             v_app = risk['v_approach']
+            on_path = risk.get('on_path', True)
 
-            color = (0, 0, 255) if risk_lvl in ['HIGH', 'CRITICAL'] else (0, 255, 0)
+            color = (0, 0, 255) if risk_lvl in ("HIGH", "CRITICAL") else (0, 255, 255) if risk_lvl == "MEDIUM" else (0, 255, 0)
+            if not on_path:
+                color = (128, 128, 128)
             
             cv2.rectangle(frame, (int(cx-w/2), int(cy-h/2)), (int(cx+w/2), int(cy+h/2)), color, 2)
 
@@ -62,7 +92,11 @@ class NURDApp:
             
             risk['distance_m'] = dist_val
 
-        return frame, risks
+        risks_for_control = [
+            r for r in risks
+            if r.get("on_path", True) and r["risk_level"] != RiskLevel.LOW
+        ]
+        return frame, risks_for_control
 
 def main():
     weights = 'runs/detect/TWM/run/weights/best.pt'
@@ -72,9 +106,9 @@ def main():
         print(f"[*] Nie znaleziono best.pt, używam modelu bazowego: {weights}")
 
     app = NURDApp(weights)
-    
 
-    # Testowanie samego odpalenia i działania na kamerze z PC, dla Carli osobny moduł #TODO
+    # Tryb testowy na kamerze z PC. Pełna symulacja CARLA ma własny moduł:
+    # nurd_carla_simulation.py → src/simulation/runner.py
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
         print("Błąd: Nie można otworzyć kamery.")
